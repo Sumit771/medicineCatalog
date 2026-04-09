@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>MediCraft Catalog Builder</title>
+  <!-- jsPDF Core Library -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    }
+
+    body {
+      background: #eef2f7;
+      padding: 28px 24px;
+    }
+
+    /* main dashboard grid */
+    .dashboard {
+      max-width: 1600px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 380px 1fr;
+      gap: 28px;
+      align-items: start;
+    }
+
+    /* LEFT PANEL — forms & PDF settings */
+    .control-panel {
+      background: white;
+      border-radius: 28px;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.05);
+      padding: 24px 22px;
+      transition: all 0.2s;
+      border: 1px solid rgba(0, 0, 0, 0.05);
+    }
+
+    .panel-section {
+      margin-bottom: 32px;
+      border-bottom: 1px solid #e9edf2;
+      padding-bottom: 24px;
+    }
+
+    .panel-section:last-child {
+      border-bottom: none;
+      margin-bottom: 0;
+      padding-bottom: 0;
+    }
+
+    .section-title {
+      font-weight: 600;
+      font-size: 18px;
+      color: #1a2c3e;
+      margin-bottom: 18px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      letter-spacing: -0.2px;
+    }
+
+    .section-title i {
+      font-size: 20px;
+      font-weight: 400;
+    }
+
+    .input-group {
+      margin-bottom: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .input-group label {
+      font-size: 13px;
+      font-weight: 500;
+      color: #2c3e50;
+      letter-spacing: 0.3px;
+    }
+
+    input, select, .color-row {
+      background: #f8fafd;
+      border: 1px solid #dce3ec;
+      border-radius: 16px;
+      padding: 10px 14px;
+      font-size: 14px;
+      transition: 0.2s;
+      outline: none;
+    }
+
+    input:focus, select:focus {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59,130,246,0.2);
+      background: white;
+    }
+
+    .color-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: #f8fafd;
+    }
+    input[type="color"] {
+      width: 48px;
+      height: 38px;
+      padding: 2px;
+      cursor: pointer;
+    }
+
+    button {
+      background: #1e466e;
+      border: none;
+      padding: 10px 18px;
+      border-radius: 40px;
+      font-weight: 500;
+      font-size: 14px;
+      cursor: pointer;
+      transition: 0.2s;
+      color: white;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    }
+
+    button.primary {
+      background: #0f2f4f;
+    }
+
+    button.primary:hover {
+      background: #0a2340;
+      transform: translateY(-1px);
+    }
+
+    button.secondary {
+      background: #4b5e77;
+    }
+
+    button.secondary:hover {
+      background: #334155;
+    }
+
+    button.warning {
+      background: #b91c1c;
+    }
+
+    button.warning:hover {
+      background: #991b1b;
+    }
+
+    .button-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    /* suggestions */
+    .suggestions-wrapper {
+      position: relative;
+    }
+    .suggestions-box {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+      max-height: 220px;
+      overflow-y: auto;
+      z-index: 100;
+      border: 1px solid #e2e8f0;
+    }
+    .suggestions-box div {
+      padding: 10px 14px;
+      cursor: pointer;
+      font-size: 13px;
+      transition: 0.1s;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    .suggestions-box div:hover {
+      background: #eef2ff;
+      color: #0f2f4f;
+    }
+
+    /* logo preview */
+    .logo-preview {
+      margin-top: 12px;
+      background: #f1f5f9;
+      border-radius: 20px;
+      padding: 12px;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      flex-wrap: wrap;
+    }
+    .logo-preview img {
+      max-height: 55px;
+      max-width: 120px;
+      object-fit: contain;
+      border-radius: 12px;
+      background: white;
+      padding: 5px;
+      border: 1px solid #dee4ec;
+    }
+
+    /* RIGHT PANEL — medicine cards preview */
+    .preview-area {
+      background: white;
+      border-radius: 28px;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.05);
+      padding: 24px;
+      border: 1px solid rgba(0, 0, 0, 0.05);
+    }
+
+    .preview-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .preview-header h3 {
+      font-weight: 600;
+      color: #1e293b;
+    }
+
+    .medicine-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 18px;
+      max-height: 68vh;
+      overflow-y: auto;
+      padding: 4px 2px;
+    }
+
+    .medicine-card {
+      background: #fefefe;
+      border-radius: 24px;
+      padding: 16px;
+      border: 1px solid #eef2f8;
+      transition: 0.2s;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+    }
+    .medicine-card:hover {
+      border-color: #cbd5e1;
+      background: #fafcff;
+    }
+    .brand-name {
+      font-weight: 800;
+      font-size: 16px;
+      letter-spacing: -0.2px;
+      margin-bottom: 6px;
+    }
+    .comp-name {
+      font-size: 12px;
+      color: #475569;
+      margin: 8px 0;
+      line-height: 1.35;
+    }
+    .card-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+    }
+    .card-actions button {
+      padding: 5px 12px;
+      font-size: 11px;
+      background: #eef2ff;
+      color: #1e3a5f;
+      box-shadow: none;
+    }
+    .card-actions button:last-child {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    /* pdf setting row */
+    .settings-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+    .setting-item {
+      flex: 1;
+      min-width: 110px;
+    }
+    .setting-item label {
+      font-size: 12px;
+      font-weight: 500;
+      color: #334155;
+    }
+    hr {
+      margin: 12px 0;
+      border-color: #eef2f8;
+    }
+
+    @media (max-width: 880px) {
+      .dashboard {
+        grid-template-columns: 1fr;
+      }
+      body {
+        padding: 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div class="dashboard">
+  <!-- LEFT PANEL: Inputs + PDF UI Controls -->
+  <div class="control-panel">
+    <div class="panel-section">
+      <div class="section-title">📄 Company & Branding</div>
+      <div class="input-group">
+        <label>🏢 Company Name</label>
+        <input type="text" id="companyName" placeholder="e.g., PHARMACARE LTD" value="MEDICINE HUB">
+      </div>
+      <div class="input-group">
+        <label>🖼️ Logo (PNG/JPG)</label>
+        <input type="file" id="logoUpload" accept="image/*">
+        <div id="logoPreviewArea" class="logo-preview" style="display: none;">
+          <img id="logoPreviewImg" alt="logo preview">
+          <button type="button" id="clearLogoBtn" style="background:#e2e8f0; color:#1e293b; padding:6px 12px;">✖ Remove</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <div class="section-title">➕ Add New Medicine</div>
+      <div class="input-group">
+        <label>💊 Medicine Name (Brand)</label>
+        <div class="suggestions-wrapper">
+          <input id="brand" placeholder="Start typing..." autocomplete="off">
+          <div id="suggestions" class="suggestions-box" style="display: none;"></div>
+        </div>
+      </div>
+      <div class="input-group">
+        <label>⚗️ Composition / Ingredients</label>
+        <input id="composition" placeholder="e.g., Paracetamol 500mg + Caffeine">
+      </div>
+      <div class="input-group">
+        <label>🎨 Brand Color (PDF accent)</label>
+        <div class="color-row">
+          <input type="color" id="color" value="#1565c0">
+          <span style="font-size:13px;">select brand color</span>
+        </div>
+      </div>
+      <div class="button-group">
+        <button onclick="addMedicine()" class="primary">+ Add Medicine</button>
+        <button onclick="clearAllData()" class="warning">🗑 Clear All</button>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <div class="section-title">⚙️ PDF Generation Engine</div>
+      <div class="settings-row">
+        <div class="setting-item">
+          <label>📄 Orientation</label>
+          <select id="pdfOrientation">
+            <option value="portrait">Portrait</option>
+            <option value="landscape">Landscape</option>
+          </select>
+        </div>
+        <div class="setting-item">
+          <label>🧩 Columns</label>
+          <select id="pdfColumns">
+            <option value="2">2 Columns (Compact)</option>
+            <option value="1">1 Column (Wide)</option>
+          </select>
+        </div>
+        <div class="setting-item">
+          <label>📏 Margin (mm)</label>
+          <input type="number" id="pdfMargin" value="12" step="1" min="5" max="25">
+        </div>
+      </div>
+      <div class="settings-row">
+        <div class="setting-item">
+          <label>🔠 Brand Font Size</label>
+          <input type="number" id="brandFontSize" value="12" step="0.5" min="9" max="20">
+        </div>
+        <div class="setting-item">
+          <label>📝 Comp. Font Size</label>
+          <input type="number" id="compFontSize" value="9" step="0.5" min="7" max="14">
+        </div>
+        <div class="setting-item">
+          <label>🖼️ Include Logo</label>
+          <select id="includeLogoFlag">
+            <option value="yes">Yes</option>
+            <option value="no">No</option>
+          </select>
+        </div>
+      </div>
+      <button id="generatePdfBtn" style="background:#0b3b5f; width:100%; justify-content:center; margin-top: 16px; padding: 12px;">📑 GENERATE CUSTOM PDF</button>
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL: Live medicine preview -->
+  <div class="preview-area">
+    <div class="preview-header">
+      <h3>💊 Medicine Catalog Preview</h3>
+      <span style="font-size:12px; background:#eef2ff; padding:4px 10px; border-radius:40px;" id="medicineCount">0 items</span>
+    </div>
+    <div id="preview" class="medicine-grid"></div>
+  </div>
+</div>
+
+<script>
+  // ---------- MEDICINE DATABASE WITH UNIQUE ID ----------
+  let medicines = [];
+  let logoDataURL = null;        // store uploaded logo as base64
+  let suggestionsList = [
+    "Epsinil-2","Fluoxecare-40","Fluoxecare-20 MD","Fulsleep-10","Fulsleep-5",
+    "Halocare-1.5 DT","Halocare 5 DT","Depout-CH","Depout-10","Lored-2",
+    "Etuit-60","Etuit -90","Etuit-T","Deploc-30","Setoxlin 25 Plus",
+    "Setoxlin CR 12.5","Setoxlin 12.5 Plus","Alzocept 10","Alzocept 5M",
+    "Steriocort 6","Olancare 2.5MD","Olancare 5MD","Olancare 20MD",
+    "Olancare 15MD","Olancare 5F","Rize-1","Jovail Plus","Jovail Lite",
+    "Jovail 15","Jovail 5","Jovail 10","Develpin ER 250","Develpin ER 500",
+    "Oxozep DT 150","Oxozep DT 300","Oxozep 600","Fludil 5T","Ano Plus",
+    "SV Chrono 300","SV Chrono 500","Restnil LS","Restnil Plus",
+    "Flupen M","Clomicare 50","Clomicare 10","Clomicare 25","Clidore",
+    "Deples 7.5","Deples 15","Epilong 0.25MD","Epilong 0.5MD","Epilong 1MD",
+    "D-Ventodep XR-50","Clozcare 100","Clozcare 50","Clozcare 25",
+    "Levizep 250","Levizep 500","Brivazep 50","Neuracle K2-7",
+    "Tablodep DT-50","Tablodep 25","Tablodep DT-100","Depnocept-50",
+    "Depnocept-100","Thenopam Pro","Propol C 0.5","Aripaxe -10",
+    "Aripaxe-5","Aripaxe-15","Apropride-100","Apropride-50",
+    "Sertane 25","Sertane 50","Sertane 100","Dezotal-150","Rabam-20",
+    "Rabam DSR","Ripcid LSR","Closum 5MD","Closum 10MD","Tigervit",
+    "Oxocetam-400","Olacute 5F","Olcute 7.5","Olacute 5","Olacute 2.5",
+    "Pacipan 1","Pacipan 0.5","Negride 50","Prolid 5","Nupur 5","Nupur 10","Lozar 1","Lozar 2","Lozar 3","Brizan 2.5","Humbre Syrup","VLP CR 400","VLP CR 300","VLP CR 200","Lored 1","Valcute CR 400","SV Chrono 200", "Setoxlin CR 37.5","Alzocept 5","Rize 2", "Rize 2 Plus","Oxozep DT 600","Deploc 20","Cobalcon Forte","Epilong 2MD","Ano SP","Memadon Forte","Memadon Plus","Brevetam 75"  ];
+
+  // load stored medicines from localStorage (migration to id)
+  function loadMedicines() {
+    let stored = localStorage.getItem("medicines_pro");
+    if (stored) {
+      let parsed = JSON.parse(stored);
+      medicines = parsed.map(m => {
+        if (!m.id) m.id = Date.now() + Math.random() * 10000 + (m.brand || '');
+        return m;
+      });
+    } else {
+      medicines = [];
+    }
+    renderMedicinePreview();
+  }
+
+  function saveMedicines() {
+    localStorage.setItem("medicines_pro", JSON.stringify(medicines));
+  }
+
+  function addMedicine() {
+    let brand = document.getElementById("brand").value.trim().toUpperCase();
+    let comp = document.getElementById("composition").value.trim();
+    let color = document.getElementById("color").value;
+    if (!brand) {
+      alert("Please enter medicine name");
+      return;
+    }
+    if (!comp) comp = "—";
+    let newMed = {
+      id: Date.now() + Math.random() * 100000,
+      brand: brand,
+      comp: comp,
+      color: color
+    };
+    medicines.push(newMed);
+    saveMedicines();
+    renderMedicinePreview();
+    document.getElementById("brand").value = "";
+    document.getElementById("composition").value = "";
+    document.getElementById("color").value = "#1565c0";
+    document.getElementById("suggestions").style.display = "none";
+  }
+
+  function deleteMedicineById(id) {
+    medicines = medicines.filter(m => m.id != id);
+    saveMedicines();
+    renderMedicinePreview();
+  }
+
+  function editMedicineById(id) {
+    let med = medicines.find(m => m.id == id);
+    if (med) {
+      document.getElementById("brand").value = med.brand;
+      document.getElementById("composition").value = med.comp;
+      document.getElementById("color").value = med.color;
+      deleteMedicineById(id);
+    }
+  }
+
+  function clearAllData() {
+    if (confirm("Delete ALL medicines? This action cannot be undone.")) {
+      medicines = [];
+      saveMedicines();
+      renderMedicinePreview();
+    }
+  }
+
+  function renderMedicinePreview() {
+    let container = document.getElementById("preview");
+    let countSpan = document.getElementById("medicineCount");
+    if (!container) return;
+    if (medicines.length === 0) {
+      container.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:48px; color:#7c8b9f;">✨ No medicines added. Add your first medicine using left panel.</div>`;
+      countSpan.innerText = "0 items";
+      return;
+    }
+    let sorted = [...medicines].sort((a,b) => a.brand.localeCompare(b.brand));
+    container.innerHTML = "";
+    sorted.forEach(med => {
+      let card = document.createElement("div");
+      card.className = "medicine-card";
+      card.innerHTML = `
+        <div class="brand-name" style="color: ${med.color};">${med.brand}</div>
+        <div class="comp-name">${med.comp}</div>
+        <div class="card-actions">
+          <button onclick="editMedicineById(${med.id})">✏ Edit</button>
+          <button onclick="deleteMedicineById(${med.id})">🗑 Delete</button>
+        </div>
+      `;
+      container.appendChild(card);
+    });
+    countSpan.innerText = `${medicines.length} item${medicines.length !== 1 ? 's' : ''}`;
+  }
+
+  // SUGGESTIONS LOGIC
+  function showSuggestions() {
+    let inputVal = document.getElementById("brand").value.toLowerCase();
+    let box = document.getElementById("suggestions");
+    if (inputVal.length === 0) {
+      box.style.display = "none";
+      box.innerHTML = "";
+      return;
+    }
+    let filtered = suggestionsList.filter(name => name.toLowerCase().includes(inputVal));
+    if (filtered.length === 0) {
+      box.style.display = "none";
+      return;
+    }
+    box.innerHTML = "";
+    filtered.forEach(name => {
+      let div = document.createElement("div");
+      div.innerText = name;
+      div.onclick = () => {
+        document.getElementById("brand").value = name;
+        box.style.display = "none";
+      };
+      box.appendChild(div);
+    });
+    box.style.display = "block";
+  }
+  document.getElementById("brand")?.addEventListener("input", showSuggestions);
+  document.addEventListener("click", function(e) {
+    let box = document.getElementById("suggestions");
+    if (box && !box.contains(e.target) && e.target.id !== "brand") {
+      box.style.display = "none";
+    }
+  });
+
+  // LOGO HANDLER
+  const logoInput = document.getElementById("logoUpload");
+  const logoPreviewArea = document.getElementById("logoPreviewArea");
+  const logoPreviewImg = document.getElementById("logoPreviewImg");
+  const clearLogoBtn = document.getElementById("clearLogoBtn");
+
+  logoInput.addEventListener("change", function(e) {
+    const file = e.target.files[0];
+    if (file && (file.type === "image/png" || file.type === "image/jpeg" || file.type === "image/jpg")) {
+      const reader = new FileReader();
+      reader.onload = function(ev) {
+        logoDataURL = ev.target.result;
+        logoPreviewImg.src = logoDataURL;
+        logoPreviewArea.style.display = "flex";
+      };
+      reader.readAsDataURL(file);
+    } else if (file) {
+      alert("Please upload PNG or JPG image for logo");
+      logoInput.value = "";
+    }
+  });
+  clearLogoBtn.addEventListener("click", function() {
+    logoDataURL = null;
+    logoPreviewImg.src = "";
+    logoPreviewArea.style.display = "none";
+    logoInput.value = "";
+  });
+
+
+
+
+
+
+
+  async function generatePDF() {
+  const { jsPDF } = window.jspdf;
+  
+  // ----- read UI settings -----
+  let orientation = document.getElementById("pdfOrientation").value;
+  let columnsCount = parseInt(document.getElementById("pdfColumns").value);
+  let marginMM = parseFloat(document.getElementById("pdfMargin").value);
+  let brandFontSize = parseFloat(document.getElementById("brandFontSize").value);
+  let compFontSize = parseFloat(document.getElementById("compFontSize").value);
+  let includeLogo = document.getElementById("includeLogoFlag").value === "yes";
+  let companyName = document.getElementById("companyName").value.trim().toUpperCase() || "PHARMA INC.";
+  
+  let pageWidth = orientation === "portrait" ? 210 : 297;
+  let pageHeight = orientation === "portrait" ? 297 : 210;
+  let pdf = new jsPDF({ orientation: orientation, unit: "mm", format: "a4" });
+  
+  let currentY = marginMM;
+  let columnGap = 12;
+  let contentWidth = pageWidth - (marginMM * 2);
+  let columnWidth = columnsCount === 2 ? (contentWidth - columnGap) / 2 : contentWidth;
+  let xLeft = marginMM;
+  let xRight = marginMM + columnWidth + columnGap;
+  
+  // ----- helper: convert hex to RGB -----
+  function hexToRgb(hex) {
+    let bigint = parseInt(hex.replace("#",""),16);
+    return { r: (bigint>>16)&255, g: (bigint>>8)&255, b: bigint&255 };
+  }
+  
+  // ----- draw header (logo + company line) -----
+  if (includeLogo && logoDataURL) {
+    try {
+      let imgProps = await new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => resolve({ width: img.width, height: img.height });
+        img.src = logoDataURL;
+      });
+      let maxLogoWidth = 45;
+      let maxLogoHeight = 25;
+      let ratio = Math.min(maxLogoWidth / imgProps.width, maxLogoHeight / imgProps.height, 1);
+      let logoWidth = imgProps.width * ratio;
+      let logoHeight = imgProps.height * ratio;
+      let logoX = (pageWidth / 2) - (logoWidth / 2);
+      pdf.addImage(logoDataURL, "PNG", logoX, currentY, logoWidth, logoHeight);
+      currentY += logoHeight + 6;
+    } catch(e) { console.warn("logo error", e); }
+  }
+  
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(18);
+  pdf.setTextColor(20, 40, 70);
+  pdf.text(companyName, pageWidth / 2, currentY, { align: "center" });
+  currentY += 8;
+  pdf.setLineWidth(0.5);
+  pdf.line(marginMM, currentY, pageWidth - marginMM, currentY);
+  currentY += 10;
+  
+  let sortedMeds = [...medicines].sort((a,b) => a.brand.localeCompare(b.brand));
+  if (sortedMeds.length === 0) {
+    pdf.setFontSize(11);
+    pdf.setTextColor(100,100,100);
+    pdf.text("No medicines added yet.", pageWidth/2, currentY+20, { align: "center" });
+    pdf.save("medicine-catalog.pdf");
+    return;
+  }
+  
+  // ----- accurate height calculation (matches drawing) -----
+  function getMedicineHeight(medicine, colWidth) {
+    // line height in mm = font size in points * 0.352778
+    const brandLineMM = brandFontSize * 0.3528;
+    const compLineMM = compFontSize * 0.3528;
+    // measure composition lines using the same column width as drawing
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(compFontSize);
+    let compLines = pdf.splitTextToSize(medicine.comp, colWidth - 2);
+    let compHeight = compLines.length * compLineMM;
+    // total: brand line + 1mm gap + composition height + 2mm bottom margin
+    let total = brandLineMM + 1 + compHeight + 2;
+    return Math.max(total, 10);
+  }
+  
+  function drawMedicine(medicine, x, y, colWidth) {
+    let rgb = hexToRgb(medicine.color);
+    const brandLineMM = brandFontSize * 0.3528;
+    // brand text
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(brandFontSize);
+    pdf.setTextColor(rgb.r, rgb.g, rgb.b);
+    pdf.text(medicine.brand, x, y);
+    // composition text
+    let compY = y + brandLineMM + 1;
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(compFontSize);
+    pdf.setTextColor(40, 40, 50);
+    let lines = pdf.splitTextToSize(medicine.comp, colWidth - 2);
+    pdf.text(lines, x, compY);
+  }
+  
+  // ----- generate PDF with correct flow -----
+  if (columnsCount === 1) {
+    // simple vertical layout
+    for (let med of sortedMeds) {
+      let blockHeight = getMedicineHeight(med, columnWidth);
+      if (currentY + blockHeight > pageHeight - marginMM) {
+        pdf.addPage();
+        currentY = marginMM;
+        // optional mini‑header on new page
+        pdf.setFontSize(12);
+        pdf.setTextColor(80,80,100);
+        pdf.text(companyName, pageWidth/2, currentY-2, { align: "center" });
+        currentY += 6;
+        pdf.line(marginMM, currentY-1, pageWidth-marginMM, currentY-1);
+        currentY += 5;
+      }
+      drawMedicine(med, xLeft, currentY, columnWidth);
+      currentY += blockHeight + 2;
+    }
+  } 
+  else { // 2 columns – row‑based layout (avoids overlap)
+    let i = 0;
+    while (i < sortedMeds.length) {
+      let leftMed = sortedMeds[i];
+      let rightMed = sortedMeds[i+1] || null;
+      
+      let leftHeight = getMedicineHeight(leftMed, columnWidth);
+      let rightHeight = rightMed ? getMedicineHeight(rightMed, columnWidth) : 0;
+      let rowHeight = Math.max(leftHeight, rightHeight);
+      
+      // check if row fits on current page
+      let needsNewPage = false;
+      if (currentY + rowHeight > pageHeight - marginMM) {
+        needsNewPage = true;
+      }
+      
+      if (needsNewPage) {
+        pdf.addPage();
+        currentY = marginMM;
+        // add mini header
+        pdf.setFontSize(12);
+        pdf.setTextColor(80,80,100);
+        pdf.text(companyName, pageWidth/2, currentY-2, { align: "center" });
+        currentY += 6;
+        pdf.line(marginMM, currentY-1, pageWidth-marginMM, currentY-1);
+        currentY += 5;
+        // re‑check after page break (should fit)
+        if (currentY + rowHeight > pageHeight - marginMM) {
+          // extremely tall single item – draw anyway (user should reduce font)
+          console.warn("Medicine block taller than page");
+        }
+      }
+      
+      // draw left medicine
+      drawMedicine(leftMed, xLeft, currentY, columnWidth);
+      // draw right medicine (if exists)
+      if (rightMed) {
+        drawMedicine(rightMed, xRight, currentY, columnWidth);
+      }
+      
+      // advance Y by row height + gap
+      currentY += rowHeight + 3;
+      i += 2;
+    }
+  }
+  
+  pdf.save("medicine_custom_catalog.pdf");
+}
+
+
+
+
+  
+  function hexToRgb(hex) {
+    let bigint = parseInt(hex.replace("#",""),16);
+    return { r: (bigint>>16)&255, g: (bigint>>8)&255, b: bigint&255 };
+  }
+  
+  // attach pdf button event
+  document.getElementById("generatePdfBtn").addEventListener("click", generatePDF);
+  
+  // init & render
+  loadMedicines();
+  window.addMedicine = addMedicine;
+  window.deleteMedicineById = deleteMedicineById;
+  window.editMedicineById = editMedicineById;
+  window.clearAllData = clearAllData;
+  window.showSuggestions = showSuggestions;
+</script>
+</body>
+</html>
